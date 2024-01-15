@@ -1,5 +1,5 @@
 
-# Chapter 2: Secrets in Kubernetes
+# Chapter 11: Secrets in Kubernetes
 
 ## Introduction
 
@@ -8,6 +8,70 @@ In the Kubernetes ecosystem, managing sensitive information is paramount to ensu
 ## What are Secrets?
 
 Secrets in Kubernetes are resources designed to store sensitive information securely. They act as a safer alternative to ConfigMaps when dealing with confidential data. Secrets are encoded in Base64, adding a layer of obfuscation, though they are not encrypted. Common use cases for Secrets include storing database passwords, API keys, and TLS certificates.
+
+
+
+
+
+Certainly! Here's the information about the types of secrets presented in markdown format:
+
+
+## Types of Secrets in Kubernetes
+
+In Kubernetes, the `type` field of a Secret specifies the type of secret and influences how the secret data is used. The most common types are `Opaque`, `kubernetes.io/service-account-token`, and `kubernetes.io/dockerconfigjson`.
+
+### Opaque
+
+- **Description:** The `Opaque` type is a generic type that can be used to store arbitrary data. It is the default type for Secrets.
+- **Use Case:** Opaque secrets are suitable for any kind of confidential information that does not require special handling, such as passwords or API keys.
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-app-secret
+type: Opaque
+data:
+  db_password: <base64-encoded-password>
+```
+
+### kubernetes.io/service-account-token
+
+- **Description:** This type is automatically used when a service account token is created. It is specifically designed for storing Kubernetes service account tokens.
+- **Use Case:** Typically used to mount service account tokens into pods for authentication with the Kubernetes API server.
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-service-account-secret
+type: kubernetes.io/service-account-token
+```
+
+### kubernetes.io/dockerconfigjson
+
+- **Description:** This type is used for storing Docker registry authentication credentials in a JSON format. It is often used with private container registries.
+- **Use Case:** Useful when pulling images from a private Docker registry that requires authentication.
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-docker-registry-secret
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: <base64-encoded-docker-config-json>
+```
+
+These types cover various scenarios, and choosing the appropriate type depends on the specific requirements of your application and the nature of the secret data being stored. It's important to use the correct type to ensure that Kubernetes handles the secret data appropriately.
+
+
 
 ## Creating a Secret
 
