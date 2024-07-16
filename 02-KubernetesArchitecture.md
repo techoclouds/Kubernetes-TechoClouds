@@ -2,7 +2,7 @@
 
 In the previous chapter, we met the amazing superhero known as Kubernetes. Now, let's peek under the mask and explore its internal workings! This chapter will give you a high-level overview of the Kubernetes architecture, showing you how this incredible orchestration platform keeps your applications singing in perfect harmony.
 
-## A City of Components
+## A City of Components 
 
 Imagine Kubernetes as a bustling city, where different districts work together to keep everything running smoothly. Here's a breakdown of the key districts and their roles:
 
