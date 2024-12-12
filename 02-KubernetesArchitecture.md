@@ -3,7 +3,7 @@
 
 In the previous chapter, we introduced Kubernetes as the ultimate platform for container orchestration. Now, it's time to take a closer look at the architecture that powers Kubernetes. This chapter provides a high-level overview of the components and how they interact to maintain your applications' desired state across a cluster.
 
-## A City of Components
+## A City of Components 
 
 Kubernetes can be thought of as a well-organized city, where different districts (components) work in unison to manage containerized applications. Here’s a breakdown of the key components:
 
