@@ -29,7 +29,7 @@ For those who have worked with Docker Swarm or other orchestration tools, you mi
 
 To better understand Kubernetes, let’s look at a high-level diagram:
 
-![Kubernetes Architecture Overview](https://kubernetes.io/images/kubernetes-architecture.png)
+![Kubernetes Architecture Overview]([https://kubernetes.io/images/kubernetes-architecture.png](https://kubernetes.io/images/docs/kubernetes-cluster-architecture.svg))
 
 *This diagram illustrates the basic architecture of Kubernetes, including the Master Node, Worker Nodes, and how containers are managed across the cluster.*
 
