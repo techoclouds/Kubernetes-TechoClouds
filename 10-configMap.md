@@ -10,7 +10,29 @@ ConfigMaps in Kubernetes serve as a mechanism for decoupling configuration artif
 
 - **Portability:** By separating configuration from the application, the Docker image becomes more portable across different environments.
 - **Flexibility:** Updates to configuration can be made dynamically without the need to rebuild the application image.
-- **Security:** Sensitive information can be kept separate from application code, enhancing security practices.
+- **Maintainability:** Configuration data is managed separately, making application management easier.
+
+## Supported Data Types in ConfigMaps
+
+ConfigMaps can store various types of data:
+- **Plain Text:** Simple key-value pairs, e.g., `db_host: "127.0.0.1"`.
+- **Multiline Text:** YAML or JSON content stored as a value.
+- **Binary Data (Base64-encoded):** Although ConfigMaps do not natively store binary data, you can encode files using Base64 and decode them within the application.
+
+Example of storing structured JSON:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: json-configmap
+data:
+  config.json: |
+    {
+      "db_host": "127.0.0.1",
+      "db_port": "3306"
+    }
+```
 
 ## Hands-on Example with Minikube
 
@@ -37,7 +59,7 @@ data:
 Create the ConfigMap using kubectl:
 
 ```bash
-kubectl create -f configmap.yaml
+kubectl apply -f configmap.yaml
 ```
 
 ### Verifying the ConfigMap
@@ -48,27 +70,49 @@ To ensure the ConfigMap has been created successfully, view its details:
 kubectl get configmap my-app-config -o yaml
 ```
 
-### Deploying an Application
+### Using ConfigMap in Deployments
 
-Reference the ConfigMap in your deployment manifest by using environment variables. For instance:
+#### Using ConfigMap as Environment Variables
+
+Reference the ConfigMap in your deployment manifest using environment variables. Create `deployment.yaml`:
 
 ```yaml
-env:
-- name: DB_HOST
-  valueFrom:
-    configMapKeyRef:
-      name: my-app-config
-      key: db_host
-- name: DB_PORT
-  valueFrom:
-    configMapKeyRef:
-      name: my-app-config
-      key: db_port
-- name: DB_USERNAME
-  valueFrom:
-    configMapKeyRef:
-      name: my-app-config
-      key: username
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+defaults:
+  labels:
+    app: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app-container
+        image: myapp-image
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: my-app-config
+              key: db_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: my-app-config
+              key: db_port
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: my-app-config
+              key: username
 ```
 
 Deploy the application:
@@ -77,82 +121,138 @@ Deploy the application:
 kubectl apply -f deployment.yaml
 ```
 
-### Accessing the ConfigMap in Your Application
+### Verifying Environment Variables in Pod
 
-Check the application pod logs to see the environment variables populated with values from the ConfigMap:
+Check if the environment variables are correctly set inside the running pod:
 
 ```bash
-kubectl logs -f pods <pod_name>
+kubectl exec -it <pod-name> -- env | grep DB_
 ```
 
-You should observe the application using configuration values from the ConfigMap.
-
-### Advanced Topics
-
-#### Mounting ConfigMaps as Volumes
+### Mounting ConfigMap as a Volume
 
 To access ConfigMap content as files, mount the ConfigMap as a volume:
 
 ```yaml
-volumes:
-- name: config-volume
-  configMap:
-    name: my-app-config
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  containers:
+  - name: my-app-container
+    image: myapp-image
+    volumeMounts:
+    - name: config-volume
+      mountPath: /app/config
+  volumes:
+  - name: config-volume
+    configMap:
+      name: my-app-config
 ```
 
-Mount the volume inside your container:
+Apply the pod configuration:
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+Verify the mounted ConfigMap data:
+
+```bash
+kubectl exec -it my-app-pod -- ls /app/config
+```
+
+## Advanced Topics
+
+### Handling ConfigMap Updates Without Pod Restarts
+
+- **Environment Variables:** Pods do **not** automatically update when a ConfigMap changes. You must manually restart the pod.
+- **Mounted Volumes:** If ConfigMaps are mounted as volumes, updates are automatically reflected.
+
+### Immutable ConfigMaps
+
+To prevent accidental modifications and improve performance, set ConfigMaps as immutable:
 
 ```yaml
-containers:
-- name: my-app-container
-  ...
-  volumeMounts:
-  - name: config-volume
-    mountPath: /app/config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-app-config
+immutable: true
+data:
+  db_host: "127.0.0.1"
 ```
 
-Now, your application can access configuration files at `/app/config`.
+## Namespace Considerations
 
-#### Using ConfigMaps with Different Data Types
+ConfigMaps are namespace-scoped. To retrieve a ConfigMap from a specific namespace:
 
-ConfigMaps can store various data types, including Base64-encoded binary data and JSON or YAML for structured configurations. Remember to encode binary data as Base64 before adding it to the ConfigMap, and parse JSON or YAML within your application.
+```bash
+kubectl get configmap my-app-config -n my-namespace
+```
+## Handling Large Configuration Files
+
+For large configuration data, store JSON/YAML directly in ConfigMaps:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-app-config
+data:
+  config.json: |
+    {
+      "db_host": "127.0.0.1",
+      "db_port": "3306"
+    }
+```
+
+Mount it in a pod and access `/app/config/config.json`.
 
 ## Best Practices
 
-When working with ConfigMaps, it's essential to follow best practices:
+- **Avoid sensitive data:** Use Kubernetes Secrets for passwords and sensitive information.
+- **Multiple ConfigMaps:** Create separate ConfigMaps for different environments (dev, staging, prod).
+- **Mount specific keys:** Only mount necessary keys to avoid exposing unnecessary data.
+- **Set defaults:** Use `optional: true` in `configMapKeyRef` to handle missing values.
 
-- **Avoid sensitive data:** For passwords or sensitive information, use Kubernetes Secrets.
-- **Multiple ConfigMaps:** Consider creating separate ConfigMaps for different environments (development, staging, production).
-- **Mount specific keys:** Only mount specific keys to avoid exposing unnecessary data.
+## Troubleshooting ConfigMap Issues
 
+### Common Issues & Fixes
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| ConfigMap not found | Incorrect name reference | Check `kubectl get configmap` |
+| No environment variable set | Pod did not restart after ConfigMap update | Restart the pod |
+| ConfigMap volume not mounted | Incorrect path reference | Use `kubectl exec` to check volume content |
 ## kubectl create configmap Tutorial
-
-The `kubectl create configmap` command allows you to create ConfigMaps from various data sources. Here's a tutorial on creating ConfigMaps using different methods:
 
 ### Creating from Literal Values
 
 ```bash
-kubectl create configmap <configmap-name> --from-literal=<key1>=<value1> --from-literal=<key2>=<value2>
+kubectl create configmap my-config --from-literal=db_host=127.0.0.1 --from-literal=db_port=3306
 ```
 
 ### Creating from Files
 
 ```bash
-kubectl create configmap <configmap-name> --from-file=<file1> --from-file=<file2>
+kubectl create configmap my-config --from-file=app-config.txt
 ```
 
 ### Creating from Directories
 
 ```bash
-kubectl create configmap <configmap-name> --from-file=<directory-path>
+kubectl create configmap my-config --from-file=/path/to/config-dir
 ```
 
-### Specifying Data Types
+### Verifying ConfigMap
 
 ```bash
-kubectl create configmap <configmap-name> --from-file=<file1> --from-literal=<key1>=<value1>
+kubectl describe configmap my-config
 ```
 
-This tutorial covers creating ConfigMaps from literal values, files, and directories while specifying data types as needed.
+## Conclusion
 
-In the next chapters, we'll explore more advanced use cases and optimization techniques for managing configuration in Kubernetes.
+In this chapter, we covered ConfigMaps, their use cases, hands-on examples, advanced topics, best practices, and troubleshooting techniques. In the next chapter, we will explore Kubernetes Secrets and how they differ from ConfigMaps in handling sensitive data.
+
