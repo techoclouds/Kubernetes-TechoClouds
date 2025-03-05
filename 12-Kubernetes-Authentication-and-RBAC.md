@@ -1,6 +1,4 @@
-Below is the complete **Markdown** document you can download or copy:
 
-```markdown
 # Kubernetes Authentication and Role-Based Access Control (RBAC)
 
 ## Introduction
