@@ -1,4 +1,3 @@
-
 ## Chapter 8: Kubernetes Services
 
 **Key Objectives:**
@@ -62,6 +61,65 @@ kubectl apply -f redis-service.yaml
 **Using `kubectl` CLI:**
 ```bash
 kubectl create service clusterip redis --selector=app=redis --port=6379
+```
+
+### Hands-on: Creating a NodePort Service
+
+**YAML Manifest Example:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 30080
+```
+
+Apply with:
+```bash
+kubectl apply -f web-nodeport.yaml
+```
+
+Test external access:
+```bash
+curl http://<NodeIP>:30080
+```
+
+### Hands-on: Creating a ClusterIP Service
+
+**YAML Manifest Example:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: api
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+```
+
+Apply with:
+```bash
+kubectl apply -f api-clusterip.yaml
+```
+
+Test internal access:
+```bash
+kubectl exec -it <pod-name> -- curl http://api-service:5000
 ```
 
 ---
@@ -165,26 +223,42 @@ kubectl delete service <service-name>
 
 Common issues and fixes:
 
-| Problem                                    | Troubleshooting Steps                                               |
-|--------------------------------------------|---------------------------------------------------------------------|
-| Service not reaching pods                  | Verify selector labels, check pod readiness                         |
+| Problem                                    | Solution                                                             |
+|--------------------------------------------|-------------------------------------------------------------------|
 | NodePort not accessible externally         | Check firewall/security groups allow node port                      |
 | Pods not receiving traffic                 | Verify pod readiness/liveness probes                                |
 | LoadBalancer IP not provisioned            | Check cloud provider events, validate service configuration         |
-| DNS resolution fails                       | Inspect DNS pods (`kubectl get pods -n kube-system`), use `nslookup`|
+| DNS resolution problems                   | Check `coredns` pod status and configuration                        |
 
 ---
 
 ## 9. Advanced Concepts
 
-- **Headless Services:** Direct pod IP discovery.
-- **Ingress Controllers:** Centralized entry point for HTTP/HTTPS traffic.
-- **Load Balancing Algorithms:** Traffic distribution strategies (e.g., round-robin).
-- **Session Affinity:** Bind client sessions to specific pods.
+### Accessing Services from Inside a Pod
+
+Pods can access services internally through Kubernetes DNS.
+
+**Hands-on Example:**
+
+Deploy a debugging pod:
+```bash
+kubectl run debug-pod --image=busybox --restart=Never -- sleep 3600
+```
+
+Check service access from the pod:
+```bash
+kubectl exec -it debug-pod -- curl http://api-service:5000
+```
+
+**Use Cases:**
+- Validate service connectivity from application pods.
+- Troubleshoot connectivity issues within the cluster.
+- Confirm service discovery is working correctly.
+
 - **Network Policies:** Restrict pod-to-pod communication for enhanced security.
 
 ---
 
 ## 10. Chapter Summary
 
-Services simplify pod communication and discovery by providing stable endpoints. Understanding the various service types and their appropriate use cases, along with common troubleshooting strategies, ensures efficient, reliable Kubernetes deployments.
+Services simplify pod communication and discovery by providing stable endpoints. Understanding the various service types and their appropriate use cases helps manage and expose applications effectively. Hands-on practice creating and troubleshooting services will solidify your Kubernetes expertise.
